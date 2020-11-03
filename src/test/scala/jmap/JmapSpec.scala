@@ -1,6 +1,7 @@
 package jmap
 
 import com.dimafeng.testcontainers.GenericContainer
+import io.circe.Json
 import jmap.Jmap.Service
 import jmap.JmapSpec.JmapServerConfiguration
 import org.apache.commons.net.imap.IMAPClient
@@ -9,7 +10,8 @@ import sttp.client.asynchttpclient.zio.AsyncHttpClientZioBackend
 import sttp.model.HeaderNames
 import zio.test.Assertion._
 import zio.test._
-import zio.{Task, _}
+import zio.{Task, IO, ZLayer, ZManaged, UIO, ZIO, Has}
+import TestAspect.ignore
 
 object Jmap {
 
@@ -67,20 +69,24 @@ object JmapSpec extends DefaultRunnableSpec {
   val container = GenericContainer("cyrus-jmap").configure(configProvider => {
     configProvider.addExposedPort(143)
     configProvider.addExposedPort(80)
+    configProvider.addExposedPort(25)
   })
 
-  case class JmapServerConfiguration(imapPort: Int, jmapPort: Int, url: String)
+  container.underlyingUnsafeContainer.withCreateContainerCmdModifier(cmd => cmd.withHostName("cyrus.domain"))
+
+  case class JmapServerConfiguration(imapPort: Int, jmapPort: Int, smtpPort: Int, url: String)
 
   private val createInboxTask: Task[_] = Task.fromFunction(_ => {
     val imapClient = new IMAPClient()
     imapClient.connect(container.container.getHost, container.container.getMappedPort(143))
     imapClient.login("bob", "bob")
-    imapClient.create("INBOX")
+    //imapClient.create("INBOX")
   })
   val jmapServerConfig = ZManaged.make(
     Task(container.start) *> createInboxTask *> Task(JmapServerConfiguration(
       container.container.getMappedPort(143),
       container.container.getMappedPort(80),
+      container.container.getMappedPort(25),
       s"http://${container.container.getHost}:${container.container.getMappedPort(80)}/jmap/"
     ))
   )(_ => UIO(container.stop))
@@ -90,19 +96,23 @@ object JmapSpec extends DefaultRunnableSpec {
     ).mapError(TestFailure.die)
 
   def spec = {
-    val mailboxGetBasic = testM[Service, Throwable]("Mailbox/get basic auth witout parameter should list the user mailboxes") {
+    val mailboxGetBasic = testM[Service, Throwable]("Mailbox/get basic auth without parameter should list the user mailboxes") {
       for {
         response <- ZIO.fromFunctionM[Service, Throwable, Response[String]](jmapService => jmapService.mailboxGetBasicAuth())
+        response.expect()
       } yield assert(response.body)(equalTo("response content"))
     }
-    val mailboxGetBearer = testM[Service, Throwable]("Mailbox/get bearer auth witout parameter should list the user mailboxes") {
+    val mailboxGetBearer = testM[Service, Throwable]("Mailbox/get bearer auth without parameter should list the user mailboxes"){
       for {
         response <- ZIO.fromFunctionM[Service, Throwable, Response[String]](jmapService => jmapService.mailboxGetBearerAuth())
       } yield assert(response.body)(equalTo("response content"))
     }
     suite("JmapSpec")(
-      mailboxGetBasic,
-      mailboxGetBearer
-    ).provideLayer(jmapClient.map(_.get))
+      mailboxGetBasic.provideLayer(jmapClient.map(_.get)),
+      mailboxGetBearer.provideLayer(jmapClient.map(_.get)) @@ ignore,
+      test("jepzofjep") {
+        assert(true)(equalTo(false))
+      } @@ ignore
+    )
   }
 }
