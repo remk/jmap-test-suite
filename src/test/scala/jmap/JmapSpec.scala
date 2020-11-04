@@ -1,7 +1,7 @@
 package jmap
 
 import com.dimafeng.testcontainers.GenericContainer
-import io.circe.Json
+import zio.json._
 import jmap.Jmap.Service
 import jmap.JmapSpec.JmapServerConfiguration
 import org.apache.commons.net.imap.IMAPClient
@@ -99,8 +99,16 @@ object JmapSpec extends DefaultRunnableSpec {
     val mailboxGetBasic = testM[Service, Throwable]("Mailbox/get basic auth without parameter should list the user mailboxes") {
       for {
         response <- ZIO.fromFunctionM[Service, Throwable, Response[String]](jmapService => jmapService.mailboxGetBasicAuth())
-        response.expect()
-      } yield assert(response.body)(equalTo("response content"))
+        jmapResponse <- response.body.fromJson[JmapResponse] match {
+          case Left(s) => ZIO.fail(new RuntimeException("error: " + s))
+          case util.Right(value) => ZIO.apply(value)
+        }
+
+      } yield {
+        println(response)
+        println(jmapResponse)
+        assert(jmapResponse.methodResponses(0).arguments.list.map(_.name))(contains(MailboxName("Inbox")))
+      }
     }
     val mailboxGetBearer = testM[Service, Throwable]("Mailbox/get bearer auth without parameter should list the user mailboxes"){
       for {

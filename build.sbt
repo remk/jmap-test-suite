@@ -19,8 +19,6 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-test-sbt"      % zioVersion % "test",
   "dev.zio" %% "zio-test-magnolia" % zioVersion % "test", // optional
   "com.dimafeng" %% "testcontainers-scala-core" % testcontainersScalaVersion % "test",
-  "io.circe" %% "circe-generic" % "0.12.1",
-  "io.circe" %% "circe-generic-extras" % "0.12.1",
 )
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 //to run tests in a separate JVM from sbt. This allows for graceful shutdown of containers once the tests have finished running.
