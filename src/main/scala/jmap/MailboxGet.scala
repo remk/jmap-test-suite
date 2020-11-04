@@ -169,12 +169,25 @@ object JmapResponse {
     JsonDecoder[(String, List[MailboxGetResponse], String)].map { case (p1, p2, p3) => JmapResponse(p1, p2, p3) }
 }*/
 
-case class Invocation(methodName: String, arguments: MailboxGetResponse, clientId: String)
-object Invocation {
-  implicit val decoder: JsonDecoder[Invocation] =
-    JsonDecoder[(String, MailboxGetResponse, String)].map { case (p1, p2, p3) => Invocation(p1, p2, p3) }
+case class SessionState(value: String)
+object SessionState {
+  implicit val decoder: JsonDecoder[SessionState] = JsonDecoder[String].map(SessionState(_))
 }
-case class JmapResponse(methodResponses: List[Invocation], sessionState: String)
+case class MethodName(value: String)
+object MethodName {
+  implicit val decoder: JsonDecoder[MethodName] = JsonDecoder[String].map(MethodName(_))
+}
+case class ClientId(value: String)
+object ClientId {
+  implicit val decoder: JsonDecoder[ClientId] = JsonDecoder[String].map(ClientId(_))
+}
+
+case class MethodResponse(methodName: MethodName, arguments: MailboxGetResponse, clientId: ClientId)
+object MethodResponse {
+  implicit val decoder: JsonDecoder[MethodResponse] =
+    JsonDecoder[(MethodName, MailboxGetResponse, ClientId)].map { case (p1, p2, p3) => MethodResponse(p1, p2, p3) }
+}
+case class JmapResponse(methodResponses: List[MethodResponse], sessionState: SessionState)
 object JmapResponse {
   implicit val decoder: JsonDecoder[JmapResponse] = DeriveJsonDecoder.gen[JmapResponse]
 }
