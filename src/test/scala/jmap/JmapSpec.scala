@@ -44,7 +44,7 @@ object JmapSpec extends DefaultRunnableSpec {
         println(response)
         println(jmapResponse)
 
-        assert(jmapResponse.methodResponses(0).arguments.list.map(_.name))(contains(MailboxName("Inbox")))
+        assert(jmapResponse.methodResponses(0).asInstanceOf[MailboxGet].arguments.list.map(_.name))(contains(MailboxName("Inbox")))
       }
     }
 

@@ -1,6 +1,7 @@
 package jmap
 
 import zio.json._
+import zio.json.ast.Json.Obj
 
 import scala.collection.immutable
 
@@ -162,6 +163,7 @@ object MailboxGetResponse {
   implicit val decoder: JsonDecoder[MailboxGetResponse] = DeriveJsonDecoder.gen[MailboxGetResponse]
 }
 
+
 /*case class JmapResponse(name: String, responses: List[MailboxGetResponse], clientId: String)
 
 object JmapResponse {
@@ -176,18 +178,11 @@ object SessionState {
 case class MethodName(value: String)
 object MethodName {
   implicit val decoder: JsonDecoder[MethodName] = JsonDecoder[String].map(MethodName(_))
+  val mailboxGet = MethodName("Mailbox/get")
+  val mailboxQuery = MethodName("Mailbox/query")
 }
 case class ClientId(value: String)
 object ClientId {
   implicit val decoder: JsonDecoder[ClientId] = JsonDecoder[String].map(ClientId(_))
 }
 
-case class MethodResponse(methodName: MethodName, arguments: MailboxGetResponse, clientId: ClientId)
-object MethodResponse {
-  implicit val decoder: JsonDecoder[MethodResponse] =
-    JsonDecoder[(MethodName, MailboxGetResponse, ClientId)].map { case (p1, p2, p3) => MethodResponse(p1, p2, p3) }
-}
-case class JmapResponse(methodResponses: List[MethodResponse], sessionState: SessionState)
-object JmapResponse {
-  implicit val decoder: JsonDecoder[JmapResponse] = DeriveJsonDecoder.gen[JmapResponse]
-}
